@@ -27,7 +27,13 @@
 
 stdenv.mkDerivation {
   pname = "abcde";
-  version = "2.12.2";
+  # Read from the VERSION='...' line in abcde, so there's nothing to bump here.
+  version =
+    let
+      lines = lib.splitString "\n" (builtins.readFile ../abcde);
+      matches = map (builtins.match "VERSION='([^']*)'") lines;
+    in
+    builtins.head (lib.findFirst (m: m != null) (throw "abcde: VERSION= line not found") matches);
 
   # Sources live at the repo root, one level up from this file.
   src = ../.;
@@ -49,8 +55,8 @@ stdenv.mkDerivation {
             s|^[[:blank:]]*INSTALL *=.*$|INSTALL = install -c|g" \
       Makefile
 
-    # abcde hardcodes CDPARANOIA=cdparanoia before reading any config
-    # (abcde:4307), so point it at cd-paranoia through a config file.
+    # abcde hardcodes CDPARANOIA=cdparanoia before reading any config,
+    # so point it at cd-paranoia through a config file.
     echo 'CDPARANOIA=${lib.getExe libcdio-paranoia}' >>abcde.conf
     echo CDROMREADERSYNTAX=cdparanoia >>abcde.conf
 
